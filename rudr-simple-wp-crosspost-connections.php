@@ -5,7 +5,7 @@
  * Description: This add-on allows to manually establish the connections between post duplicates on different sites.
  * Author: Misha Rudrastyh
  * Author URI: https://rudrastyh.com
- * Version: 1.7
+ * Version: 1.8
  */
 
 // Add Bulk Actions for Any Existing Post Type
@@ -81,7 +81,12 @@ function rudr_wp_crosspost_handle_bulk_connections( $redirect, $doaction, $objec
 				}
 
 				$request = wp_remote_get(
-					add_query_arg( array( 'sku' => $sku ), $blog[ 'url' ] . '/wp-json/wc/v3/products' ),
+					add_query_arg(
+						array(
+							'sku' => urlencode( $sku ),
+						),
+						$blog[ 'url' ] . '/wp-json/wc/v3/products'
+					),
 					array(
 						'headers' => array(
 							'Authorization' => 'Basic ' . base64_encode( "{$blog[ 'login' ]}:{$blog[ 'pwd' ]}" )
