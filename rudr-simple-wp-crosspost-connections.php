@@ -183,7 +183,9 @@ function rudr_wp_crosspost_handle_bulk_connections( $redirect, $doaction, $objec
 					if( $posts ) {
 						$post = reset( $posts );
 						Rudr_Simple_WP_Crosspost::add_crossposted_data( $object_id, $post->id, $blog_id );
-						update_post_meta( $object_id, Rudr_Simple_WP_Crosspost::META_KEY . $blog_id, 1 );
+						if( 'attachment' !== $post->post_type ) {
+							update_post_meta( $object_id, Rudr_Simple_WP_Crosspost::META_KEY . $blog_id, 1 );
+						}
 						$connected++;
 					} else {
 						// no products found, we need to remove connection
