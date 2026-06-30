@@ -5,7 +5,7 @@
  * Description: This add-on allows to manually establish the connections between post duplicates on different sites.
  * Author: Misha Rudrastyh
  * Author URI: https://rudrastyh.com
- * Version: 1.8
+ * Version: 1.9
  */
 
 // Add Bulk Actions for Any Existing Post Type
@@ -23,10 +23,14 @@ add_action( 'admin_init', function() {
 		$post_types = array_intersect( $post_types, $allowed_post_types );
 	}
 
+
 	foreach( $post_types as $post_type ) {
 		add_filter( 'bulk_actions-edit-' . $post_type, 'rudr_wp_crosspost_bulk_connections' );
 		add_filter( 'handle_bulk_actions-edit-' . $post_type, 'rudr_wp_crosspost_handle_bulk_connections', 10, 3 );
 	}
+
+	add_filter( 'bulk_actions-upload', 'rudr_wp_crosspost_bulk_connections' );
+	add_filter( 'handle_bulk_actions-upload', 'rudr_wp_crosspost_handle_bulk_connections', 10, 3 );
 
 }, 9999 );
 
@@ -151,17 +155,19 @@ function rudr_wp_crosspost_handle_bulk_connections( $redirect, $doaction, $objec
 					}
 				}
 				// we just about to continue the loop
+
 			} else {
 
 				$post = get_post( $object_id );
 				$post_type = get_post_type_object( $post->post_type );
 				$rest_base = $post_type->rest_base ? $post_type->rest_base : $post->post_type;
+				$status = 'attachment' === $post->post_type ? 'inherit' : 'any';
 
 				$request = wp_remote_get(
 					add_query_arg(
 						array(
 							'slug' => $post->post_name,
-							'status' => 'any'
+							'status' => $status,
 						),
 						"{$blog[ 'url' ]}/wp-json/wp/v2/{$rest_base}"
 					),
@@ -202,16 +208,22 @@ function rudr_wp_crosspost_handle_bulk_connections( $redirect, $doaction, $objec
 
 // Doing notices
 add_action( 'admin_notices', function() {
+	if( ! function_exists( 'get_current_screen' ) ) {
+		return;
+	}
+	
+	$screen = get_current_screen();
 
-	$post_type = ! empty( $_GET[ 'post_type' ] ) ? $_GET[ 'post_type' ] : 'post';
+	$post_type = $screen->post_type;
 	$post_type_object = get_post_type_object( $post_type );
+	$item_name = 'Media' === $post_type_object->labels->singular_name ? 'media file' : strtolower( $post_type_object->labels->singular_name );
 
 	if( ! empty( $_REQUEST[ 'rudr_connect_done' ] ) && $post_type_object ) {
 
 		printf(
 			'<div id="message" class="updated notice is-dismissible"><p>' . _n( '%s %s has been successfully connected.', '%s %ss have been successfully connected.', absint( $_REQUEST[ 'rudr_connect_done' ] ) ) . '</p></div>',
 			absint( $_REQUEST[ 'rudr_connect_done' ] ),
-			strtolower( $post_type_object->labels->singular_name )
+			$item_name
 		);
 
 	}
